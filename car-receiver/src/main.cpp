@@ -11,6 +11,10 @@
 #define IN3 19
 #define IN4 18
 
+// LEDC PWM channels (Arduino-ESP32 2.0.x 旧版 API 用通道号)
+#define PWM_CH_A 0
+#define PWM_CH_B 1
+
 // Motor PWM settings
 const int pwmFreq = 1000;
 const int pwmResolution = 8;
@@ -25,11 +29,11 @@ struct_message incomingData;
 // ---------------- MOTOR CONTROL ----------------
 
 void setMotorA(int speed) {
-    ledcWrite(ENA, speed);
+    ledcWrite(PWM_CH_A, speed);
 }
 
 void setMotorB(int speed) {
-    ledcWrite(ENB, speed);
+    ledcWrite(PWM_CH_B, speed);
 }
 
 void stopMotors() {
@@ -98,7 +102,7 @@ void moveCar(const char* cmd) {
 
 // ---------------- ESP-NOW CALLBACK ----------------
 
-void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+void OnDataRecv(const uint8_t *mac, const uint8_t *data, int len) {
     memcpy(&incomingData, data, sizeof(incomingData));
 
     Serial.print("Commands Received: ");
@@ -117,9 +121,11 @@ void setup() {
     pinMode(IN3, OUTPUT);
     pinMode(IN4, OUTPUT);
 
-    // NEW LEDC API (ESP32 v3+ style)
-    ledcAttach(ENA, pwmFreq, pwmResolution);
-    ledcAttach(ENB, pwmFreq, pwmResolution);
+    // LEDC 旧版 API（Arduino-ESP32 2.0.x）：先 setup 通道，再绑定引脚
+    ledcSetup(PWM_CH_A, pwmFreq, pwmResolution);
+    ledcAttachPin(ENA, PWM_CH_A);
+    ledcSetup(PWM_CH_B, pwmFreq, pwmResolution);
+    ledcAttachPin(ENB, PWM_CH_B);
 
     WiFi.mode(WIFI_STA);
 
